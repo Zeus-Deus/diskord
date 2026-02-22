@@ -1,4 +1,9 @@
 # Diskord
+
+<p align="center">
+  <img src="screenshots/main.png" alt="Diskord Storage Manager running on Omarchy with Hyprland floating rules" />
+</p>
+
 A fast, intuitive, and universal TUI storage manager for Omarchy (Arch Linux + Hyprland). 
 
 Diskord serves as a visual, 1-click alternative to terminal commands like `df -h`, functioning similarly to the macOS or Windows storage settings, but natively inside a terminal using Rust and Ratatui. 
