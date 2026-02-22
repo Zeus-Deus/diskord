@@ -11,9 +11,28 @@ It fully adapts to your current Omarchy theme automatically, seamlessly integrat
 - **Theme-aware**: Dynamically parses `~/.config/omarchy/current/theme/colors.toml` to blend in perfectly with your setup.
 - **Root/System Safety**: Protects you from accidentally trashing root files outside your home directory, prompting securely if you want to permanently obliterate them.
 
-## Manual Installation
+## Installation (Recommended)
 
-To install Diskord seamlessly, so that it acts like a native, floating GUI app when launched from Walker (`SUPER + SPACE`), follow these steps:
+Diskord is available on the Arch User Repository (AUR). You can install it using `yay` or your preferred AUR helper.
+
+```bash
+yay -S diskord
+```
+
+### Make the Window Float and Center
+By default, your terminal might tile. To make Diskord float perfectly in the center of your screen like a native app when launched from Walker (`SUPER + SPACE`), add a window rule to your Hyprland configuration.
+
+Open `~/.config/hypr/windows.conf` (or `hyprland.conf`) and add the following line:
+```ini
+# Diskord Storage Manager
+windowrule = float on, center on, size 1000 700, match:initial_class org.omarchy.Diskord
+```
+
+---
+
+## Manual Installation (From Source)
+
+If you prefer to build Diskord yourself, follow these steps:
 
 ### 1. Build and Install the Binary
 Ensure you have the Rust toolchain installed. Clone this repository and run:
@@ -31,17 +50,7 @@ mkdir -p ~/.local/share/applications
 cp diskord.desktop ~/.local/share/applications/
 ```
 
-### 3. Make the Window Float and Center
-By default, your terminal might tile. To make Diskord float perfectly in the center of your screen like a native app, add a window rule to your Hyprland configuration.
-
-Open `~/.config/hypr/windows.conf` (or `hyprland.conf`) and add the following line:
-```ini
-# Diskord Storage Manager
-windowrule = float on, center on, size 1000 700, match:initial_class org.omarchy.Diskord
-```
-
-## AUR Package Notice
-If you are reading this and installing via the AUR (e.g., `yay -S diskord`), the `.desktop` file and binary are likely placed into `/usr/share/applications/` and `/usr/bin/` automatically for you! You may only need to add the Hyprland window rule mentioned in Step 3 to ensure it floats. 
+Then, follow the **Make the Window Float and Center** instructions above.
 
 ## Keybindings
 - `h` / `l` or `Tab`: Switch Tabs / Navigate in and out of folders in Deep Scanner
