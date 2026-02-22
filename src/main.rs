@@ -1,10 +1,10 @@
 use crossterm::{
-    ExecutableCommand,
     event::{self, Event, KeyCode, KeyEventKind},
-    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    ExecutableCommand,
 };
-use ratatui::{Terminal, backend::CrosstermBackend, prelude::*, widgets::*};
-use std::io::{Result, stdout};
+use ratatui::{backend::CrosstermBackend, prelude::*, widgets::*, Terminal};
+use std::io::{stdout, Result};
 use std::time::Duration;
 
 pub mod scanner;
@@ -439,7 +439,7 @@ fn ui(f: &mut Frame, app: &App) {
     let size = f.area();
 
     let block = Block::default()
-        .title(" Diskord: Omarchy Storage Manager ")
+        .title(" Diskord: Storage Manager ")
         .title_alignment(Alignment::Center)
         .borders(Borders::ALL)
         .border_style(Style::default().fg(app.theme.accent))
