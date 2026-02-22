@@ -25,15 +25,15 @@ cp target/release/diskord ~/.local/bin/
 *(Make sure `~/.local/bin` is in your `$PATH`, which it is by default on Omarchy)*
 
 ### 2. Add to Walker (App Launcher)
-Create a `.desktop` file so Diskord appears in Walker when you search for it.
+Create a `.desktop` file so Diskord appears in Walker when you search for it. We use `xdg-terminal-exec` to launch your system's default terminal and supply an explicit path to the binary to avoid `$PATH` resolution errors in graphical environments.
 ```bash
 mkdir -p ~/.local/share/applications
-cat << 'EOF' > ~/.local/share/applications/diskord.desktop
+cat << EOF > ~/.local/share/applications/diskord.desktop
 [Desktop Entry]
 Name=Diskord
 Comment=Omarchy Storage Manager
 GenericName=Storage Settings
-Exec=ghostty --class=diskord -e diskord
+Exec=xdg-terminal-exec --app-id=org.omarchy.Diskord -e $HOME/.local/bin/diskord
 Icon=drive-harddisk
 Type=Application
 Terminal=false
@@ -41,7 +41,6 @@ Categories=System;Settings;Utility;
 Keywords=disk;space;storage;clean;omarchy;
 EOF
 ```
-*Note: This configuration explicitly uses `ghostty`. If you use another terminal on Omarchy like `alacritty`, simply swap `ghostty --class=diskord` with `alacritty --class diskord`.*
 
 ### 3. Make the Window Float and Center
 By default, your terminal might tile. To make Diskord float perfectly in the center of your screen like a native app, add a window rule to your Hyprland configuration.
@@ -49,7 +48,7 @@ By default, your terminal might tile. To make Diskord float perfectly in the cen
 Open `~/.config/hypr/windows.conf` (or `hyprland.conf`) and add the following line:
 ```ini
 # Diskord Storage Manager
-windowrule = float on, center on, size 1000 700, match:class ^(diskord)$
+windowrule = float on, center on, size 1000 700, match:initial_class org.omarchy.Diskord
 ```
 
 ## AUR Package Notice
