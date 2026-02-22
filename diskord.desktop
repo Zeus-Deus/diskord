@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Diskord
+Comment=Omarchy Storage Manager
+GenericName=Storage Settings
+Exec=xdg-terminal-exec --app-id=org.omarchy.Diskord -e /home/zeus/.local/bin/diskord
+Icon=diskord
+Type=Application
+Terminal=false
+Categories=System;Settings;Utility;
+Keywords=disk;space;storage;clean;omarchy;

@@ -13,7 +13,7 @@ It fully adapts to your current Omarchy theme automatically, seamlessly integrat
 
 ## Manual Installation
 
-To install Diskord onto your Omarchy system seamlessly, so that it acts like a native, floating GUI app when launched from Walker (`SUPER + SPACE`), follow these exact steps:
+To install Diskord seamlessly, so that it acts like a native, floating GUI app when launched from Walker (`SUPER + SPACE`), follow these steps:
 
 ### 1. Build and Install the Binary
 Ensure you have the Rust toolchain installed. Clone this repository and run:
@@ -23,24 +23,12 @@ mkdir -p ~/.local/bin ~/.local/share/icons/hicolor/scalable/apps/
 cp target/release/diskord ~/.local/bin/
 cp assets/diskord.svg ~/.local/share/icons/hicolor/scalable/apps/
 ```
-*(Make sure `~/.local/bin` is in your `$PATH`, which it is by default on Omarchy)*
 
 ### 2. Add to Walker (App Launcher)
-Create a `.desktop` file so Diskord appears in Walker when you search for it. We use `xdg-terminal-exec` to launch your system's default terminal and supply an explicit path to the binary to avoid `$PATH` resolution errors in graphical environments.
+Copy the included `.desktop` file to your local applications folder:
 ```bash
 mkdir -p ~/.local/share/applications
-cat << EOF > ~/.local/share/applications/diskord.desktop
-[Desktop Entry]
-Name=Diskord
-Comment=Omarchy Storage Manager
-GenericName=Storage Settings
-Exec=xdg-terminal-exec --app-id=org.omarchy.Diskord -e $HOME/.local/bin/diskord
-Icon=diskord
-Type=Application
-Terminal=false
-Categories=System;Settings;Utility;
-Keywords=disk;space;storage;clean;omarchy;
-EOF
+cp diskord.desktop ~/.local/share/applications/
 ```
 
 ### 3. Make the Window Float and Center
