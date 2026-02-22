@@ -19,8 +19,9 @@ To install Diskord onto your Omarchy system seamlessly, so that it acts like a n
 Ensure you have the Rust toolchain installed. Clone this repository and run:
 ```bash
 cargo build --release
-mkdir -p ~/.local/bin
+mkdir -p ~/.local/bin ~/.local/share/icons/hicolor/scalable/apps/
 cp target/release/diskord ~/.local/bin/
+cp assets/diskord.svg ~/.local/share/icons/hicolor/scalable/apps/
 ```
 *(Make sure `~/.local/bin` is in your `$PATH`, which it is by default on Omarchy)*
 
@@ -34,7 +35,7 @@ Name=Diskord
 Comment=Omarchy Storage Manager
 GenericName=Storage Settings
 Exec=xdg-terminal-exec --app-id=org.omarchy.Diskord -e $HOME/.local/bin/diskord
-Icon=drive-harddisk
+Icon=diskord
 Type=Application
 Terminal=false
 Categories=System;Settings;Utility;

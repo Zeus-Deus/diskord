@@ -1,0 +1,45 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Background Chassis Gradient -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2b2d3a"/>
+      <stop offset="100%" stop-color="#181920"/>
+    </linearGradient>
+    
+    <!-- Platter Gradient -->
+    <linearGradient id="platter" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#89b4fa"/>
+      <stop offset="100%" stop-color="#cba6f7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Base Chassis -->
+  <rect x="24" y="24" width="208" height="208" rx="28" fill="url(#bg)" stroke="#45475a" stroke-width="8"/>
+  
+  <!-- Inner Recess Area -->
+  <rect x="40" y="40" width="176" height="176" rx="20" fill="#11111b" />
+
+  <!-- Magnetic Platter (Disks) -->
+  <circle cx="128" cy="116" r="64" fill="none" stroke="url(#platter)" stroke-width="16"/>
+  <circle cx="128" cy="116" r="44" fill="none" stroke="#313244" stroke-width="4"/>
+
+  <!-- Spindle / Center Hub -->
+  <circle cx="128" cy="116" r="20" fill="#f38ba8"/>
+  <circle cx="128" cy="116" r="8" fill="#11111b"/>
+
+  <!-- Actuator Arm -->
+  <path d="M 112 116 L 176 196" stroke="#cdd6f4" stroke-width="14" stroke-linecap="round"/>
+  
+  <!-- Actuator Pivot Base -->
+  <circle cx="176" cy="196" r="18" fill="#a6e3a1"/>
+  <circle cx="176" cy="196" r="6" fill="#11111b"/>
+
+  <!-- Bottom UI elements / Activity Lights -->
+  <rect x="56" y="200" width="32" height="6" rx="3" fill="#f9e2af"/>
+  <rect x="96" y="200" width="16" height="6" rx="3" fill="#f38ba8"/>
+  
+  <!-- Accent Screws in Corners -->
+  <circle cx="48" cy="48" r="4" fill="#6c7086"/>
+  <circle cx="208" cy="48" r="4" fill="#6c7086"/>
+  <circle cx="48" cy="208" r="4" fill="#6c7086"/>
+</svg>
