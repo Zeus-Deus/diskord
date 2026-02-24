@@ -241,13 +241,12 @@ pub fn get_docker_size() -> u64 {
         .arg("{{.Size}}") // Unfortunately format {{.Size}} gives human readable like "1.2GB"
         .output();
 
-    if let Ok(out) = output {
-        if out.status.success() {
+    if let Ok(out) = output
+        && out.status.success() {
             // For simplicity, we just use du on /var/lib/docker if we have permission,
             // otherwise we'll parse the human readable string if possible, or just return 0 if permission denied.
             return get_dir_size_with_du("/var/lib/docker");
         }
-    }
     0
 }
 
@@ -401,11 +400,10 @@ fn get_dir_size_with_du(path: &str) -> u64 {
 
     if let Ok(output) = output {
         let stdout = String::from_utf8_lossy(&output.stdout);
-        if let Some(first_word) = stdout.split_whitespace().next() {
-            if let Ok(size) = first_word.parse::<u64>() {
+        if let Some(first_word) = stdout.split_whitespace().next()
+            && let Ok(size) = first_word.parse::<u64>() {
                 return size;
             }
-        }
     }
 
     // Fallback: Just return 0 if 'du' fails (e.g. permission denied)

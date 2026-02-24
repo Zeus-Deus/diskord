@@ -19,9 +19,9 @@ pub fn scan_directory(path: &Path) -> Vec<DirEntry> {
     let root_path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
 
     for entry in WalkDir::new(&root_path).skip_hidden(false) {
-        if let Ok(entry) = entry {
-            if let Ok(metadata) = entry.metadata() {
-                if metadata.is_file() {
+        if let Ok(entry) = entry
+            && let Ok(metadata) = entry.metadata()
+                && metadata.is_file() {
                     let file_size = metadata.len();
 
                     let file_path = entry.path();
@@ -39,8 +39,6 @@ pub fn scan_directory(path: &Path) -> Vec<DirEntry> {
                         }
                     }
                 }
-            }
-        }
     }
 
     let mut results = Vec::new();

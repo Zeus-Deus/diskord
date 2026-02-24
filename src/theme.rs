@@ -1,7 +1,6 @@
 use ratatui::style::Color;
 use serde_derive::Deserialize;
 use std::fs;
-use std::path::PathBuf;
 
 #[derive(Debug, Deserialize)]
 struct TomlColors {
@@ -104,9 +103,9 @@ impl OmarchyTheme {
             p
         });
 
-        if let Some(p) = path {
-            if let Ok(content) = fs::read_to_string(p) {
-                if let Ok(toml_data) = toml::from_str::<TomlColors>(&content) {
+        if let Some(p) = path
+            && let Ok(content) = fs::read_to_string(p)
+                && let Ok(toml_data) = toml::from_str::<TomlColors>(&content) {
                     Self::apply_if_some(&mut default.accent, toml_data.accent);
                     Self::apply_if_some(&mut default.cursor, toml_data.cursor);
                     Self::apply_if_some(&mut default.foreground, toml_data.foreground);
@@ -138,18 +137,15 @@ impl OmarchyTheme {
                     Self::apply_if_some(&mut default.color14, toml_data.color14);
                     Self::apply_if_some(&mut default.color15, toml_data.color15);
                 }
-            }
-        }
 
         default
     }
 
     fn apply_if_some(color: &mut Color, hex: Option<String>) {
-        if let Some(h) = hex {
-            if let Some(parsed) = Self::parse_hex(&h) {
+        if let Some(h) = hex
+            && let Some(parsed) = Self::parse_hex(&h) {
                 *color = parsed;
             }
-        }
     }
 
     fn parse_hex(hex: &str) -> Option<Color> {

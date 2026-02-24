@@ -267,58 +267,50 @@ impl App {
         }
 
         // System Junk
-        if self.clean_pacman {
-            if system::clean_pacman_cache() {
+        if self.clean_pacman
+            && system::clean_pacman_cache() {
                 self.pacman_cache_size = system::get_pacman_cache_size();
                 self.clean_pacman = false;
             }
-        }
-        if self.clean_yay {
-            if system::clean_yay_cache() {
+        if self.clean_yay
+            && system::clean_yay_cache() {
                 self.yay_cache_size = system::get_yay_cache_size();
                 self.clean_yay = false;
             }
-        }
-        if self.clean_journal {
-            if system::vacuum_journal() {
+        if self.clean_journal
+            && system::vacuum_journal() {
                 self.journal_size = system::get_journal_size();
                 self.clean_journal = false;
             }
-        }
-        if self.clean_trash {
-            if system::empty_trash() {
+        if self.clean_trash
+            && system::empty_trash() {
                 self.trash_size = system::get_trash_size();
                 self.clean_trash = false;
             }
-        }
-        if self.clean_orphaned {
-            if system::clean_orphaned_packages() {
+        if self.clean_orphaned
+            && system::clean_orphaned_packages() {
                 let orphaned = system::get_orphaned_packages();
                 self.orphaned_size = orphaned.0;
                 self.orphaned_count = orphaned.1;
                 self.clean_orphaned = false;
             }
-        }
 
         // Dev Tools
-        if self.clean_docker {
-            if system::clean_docker() {
+        if self.clean_docker
+            && system::clean_docker() {
                 self.docker_size = system::get_docker_size();
                 self.clean_docker = false;
             }
-        }
-        if self.clean_cargo {
-            if system::clean_cargo_cache() {
+        if self.clean_cargo
+            && system::clean_cargo_cache() {
                 self.cargo_size = system::get_cargo_cache_size();
                 self.clean_cargo = false;
             }
-        }
-        if self.clean_npm {
-            if system::clean_npm_cache() {
+        if self.clean_npm
+            && system::clean_npm_cache() {
                 self.npm_size = system::get_npm_cache_size();
                 self.clean_npm = false;
             }
-        }
 
         self.disks = system::get_disks();
     }
@@ -393,9 +385,9 @@ fn main() -> Result<()> {
     while !app.should_quit {
         terminal.draw(|f| ui(f, &app))?;
 
-        if event::poll(Duration::from_millis(50))? {
-            if let Event::Key(key) = event::read()? {
-                if key.kind == KeyEventKind::Press {
+        if event::poll(Duration::from_millis(50))?
+            && let Event::Key(key) = event::read()?
+                && key.kind == KeyEventKind::Press {
                     match key.code {
                         KeyCode::Char('q') => app.should_quit = true,
                         KeyCode::Esc => {
@@ -429,8 +421,6 @@ fn main() -> Result<()> {
                         _ => {}
                     }
                 }
-            }
-        }
     }
 
     disable_raw_mode()?;
@@ -463,7 +453,7 @@ fn ui(f: &mut Frame, app: &App) {
         .split(inner_area);
 
     // 1. Dashboard / Disks
-    for disk in &app.disks {
+    if let Some(disk) = app.disks.first() {
         let percent = if disk.total_space > 0 {
             (disk.used_space as f64 / disk.total_space as f64 * 100.0) as u16
         } else {
@@ -488,7 +478,6 @@ fn ui(f: &mut Frame, app: &App) {
             .percent(percent);
 
         f.render_widget(gauge, chunks[0]);
-        break;
     }
 
     // 2. Tabs
