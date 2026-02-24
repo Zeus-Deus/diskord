@@ -11,7 +11,7 @@ Diskord serves as a visual, 1-click alternative to terminal commands like `df -h
 It fully adapts to your current Omarchy theme automatically, seamlessly integrates with native Linux Trashing, and handles `pkexec` privilege escalations correctly for system caches.
 
 ## Features
-- **4-Tab Architecture**: Check system junk, developer caches, apps, and use a deep scanner to drill down into large folders.
+- **5-Tab Architecture**: Check system junk, developer caches, apps, use a deep scanner to drill down into large folders, and manage a Session Trash.
 - **Session Trash**: Delete items with the deep scanner and easily undo/restore them right away from the Session Trash tab before committing to a permanent delete.
 - **Theme-aware**: Dynamically parses `~/.config/omarchy/current/theme/colors.toml` to blend in perfectly with your setup.
 - **Root/System Safety**: Protects you from accidentally trashing root files outside your home directory, prompting securely if you want to permanently obliterate them.
