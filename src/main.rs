@@ -353,6 +353,7 @@ impl App {
         self.show_root_warning = false;
         self.scan_results = scanner::scan_directory(&self.current_scan_path);
         self.scanner_index = 0;
+        self.disks = system::get_disks();
     }
 
     fn execute_session_trash_delete(&mut self) {
@@ -365,6 +366,7 @@ impl App {
         if self.session_trash_index >= self.trashed_items.len() && self.session_trash_index > 0 {
             self.session_trash_index -= 1;
         }
+        self.disks = system::get_disks();
     }
 
     fn execute_undo_trash(&mut self) {
@@ -377,6 +379,7 @@ impl App {
         if self.session_trash_index >= self.trashed_items.len() && self.session_trash_index > 0 {
             self.session_trash_index -= 1;
         }
+        self.disks = system::get_disks();
     }
 }
 
