@@ -18,6 +18,7 @@ enum ActiveTab {
     Apps,
     DeepScanner,
     SessionTrash,
+    Snapshots,
 }
 
 struct App {
@@ -69,6 +70,11 @@ struct App {
     trashed_items: Vec<system::TrashedItem>,
     session_trash_index: usize,
     show_root_warning: bool,
+
+    // Snapshots State
+    snapshots: Vec<system::Snapshot>,
+    snapshots_index: usize,
+    snapshots_available: bool,
 }
 
 impl App {
@@ -120,6 +126,10 @@ impl App {
             trashed_items: Vec::new(),
             session_trash_index: 0,
             show_root_warning: false,
+
+            snapshots: system::get_snapshots(),
+            snapshots_index: 0,
+            snapshots_available: system::check_snapper_available(),
         }
     }
 
@@ -129,17 +139,31 @@ impl App {
             ActiveTab::Developer => ActiveTab::Apps,
             ActiveTab::Apps => ActiveTab::DeepScanner,
             ActiveTab::DeepScanner => ActiveTab::SessionTrash,
-            ActiveTab::SessionTrash => ActiveTab::System,
+            ActiveTab::SessionTrash => {
+                if self.snapshots_available {
+                    ActiveTab::Snapshots
+                } else {
+                    ActiveTab::System
+                }
+            }
+            ActiveTab::Snapshots => ActiveTab::System,
         };
     }
 
     fn prev_tab(&mut self) {
         self.active_tab = match self.active_tab {
-            ActiveTab::System => ActiveTab::SessionTrash,
+            ActiveTab::System => {
+                if self.snapshots_available {
+                    ActiveTab::Snapshots
+                } else {
+                    ActiveTab::SessionTrash
+                }
+            }
             ActiveTab::Developer => ActiveTab::System,
             ActiveTab::Apps => ActiveTab::Developer,
             ActiveTab::DeepScanner => ActiveTab::Apps,
             ActiveTab::SessionTrash => ActiveTab::DeepScanner,
+            ActiveTab::Snapshots => ActiveTab::SessionTrash,
         };
     }
 
@@ -157,6 +181,11 @@ impl App {
                 if !self.trashed_items.is_empty() {
                     self.session_trash_index =
                         (self.session_trash_index + 1) % self.trashed_items.len();
+                }
+            }
+            ActiveTab::Snapshots => {
+                if !self.snapshots.is_empty() {
+                    self.snapshots_index = (self.snapshots_index + 1) % self.snapshots.len();
                 }
             }
         }
@@ -200,6 +229,15 @@ impl App {
                         self.session_trash_index -= 1;
                     } else {
                         self.session_trash_index = self.trashed_items.len() - 1;
+                    }
+                }
+            }
+            ActiveTab::Snapshots => {
+                if !self.snapshots.is_empty() {
+                    if self.snapshots_index > 0 {
+                        self.snapshots_index -= 1;
+                    } else {
+                        self.snapshots_index = self.snapshots.len() - 1;
                     }
                 }
             }
@@ -263,6 +301,10 @@ impl App {
         }
         if self.active_tab == ActiveTab::SessionTrash {
             self.execute_session_trash_delete();
+            return;
+        }
+        if self.active_tab == ActiveTab::Snapshots {
+            self.execute_snapshot_delete();
             return;
         }
 
@@ -373,6 +415,31 @@ impl App {
         }
         self.disks = system::get_disks();
     }
+
+    fn execute_snapshot_delete(&mut self) {
+        if self.snapshots.is_empty() {
+            return;
+        }
+        let snapshot = &self.snapshots[self.snapshots_index];
+        if system::delete_snapshot(&snapshot.config, &snapshot.id) {
+            self.snapshots.remove(self.snapshots_index);
+            if self.snapshots_index >= self.snapshots.len() && self.snapshots_index > 0 {
+                self.snapshots_index -= 1;
+            }
+            self.disks = system::get_disks();
+        }
+    }
+
+    fn execute_snapshot_create(&mut self) {
+        if self.active_tab != ActiveTab::Snapshots {
+            return;
+        }
+        if system::create_snapshot() {
+            self.snapshots = system::get_snapshots();
+            self.snapshots_index = 0;
+            self.disks = system::get_disks();
+        }
+    }
 }
 
 fn main() -> Result<()> {
@@ -418,6 +485,7 @@ fn main() -> Result<()> {
                         KeyCode::Char(' ') => app.toggle_selection(),
                         KeyCode::Enter => app.execute_clean(),
                         KeyCode::Char('u') => app.execute_undo_trash(),
+                        KeyCode::Char('c') => app.execute_snapshot_create(),
                         _ => {}
                     }
                 }
@@ -481,13 +549,16 @@ fn ui(f: &mut Frame, app: &App) {
     }
 
     // 2. Tabs
-    let tab_titles = vec![
+    let mut tab_titles = vec![
         "System Junk",
         "Developer Tools",
         "Apps & Games",
         "Deep Scanner",
         "Session Trash",
     ];
+    if app.snapshots_available {
+        tab_titles.push("Snapshots");
+    }
     let tabs = Tabs::new(tab_titles)
         .block(
             Block::default()
@@ -517,6 +588,7 @@ fn ui(f: &mut Frame, app: &App) {
         ActiveTab::Apps => render_apps_tab(f, app, content_inner),
         ActiveTab::DeepScanner => render_deep_scan_tab(f, app, content_inner),
         ActiveTab::SessionTrash => render_session_trash_tab(f, app, content_inner),
+        ActiveTab::Snapshots => render_snapshots_tab(f, app, content_inner),
     }
 
     // 4. Footer
@@ -525,11 +597,14 @@ fn ui(f: &mut Frame, app: &App) {
             if app.show_root_warning {
                 " [Enter] Confirm PERMANENT DELETE   [Esc] Cancel"
             } else {
-                " [Space] Toggle Select   [Enter] Move Selected to Trash   [h/l] Navigate Folder"
+                " [Space] Toggle Select   [Enter] Move Selected to Trash   [h/l] Navigate Folder   [Missing space? Check Snapshots tab]"
             }
         }
         ActiveTab::SessionTrash => {
-            " [u] Undo/Restore   [Enter] Permanently Delete Selected   [h/l, Tab] Switch Tabs"
+            " [u] Undo/Restore   [Enter] Permanently Delete Selected   [h/l, Tab] Switch Tabs   [Missing space? Check Snapshots tab]"
+        }
+        ActiveTab::Snapshots => {
+            " [c] Create New Backup   [Enter] Delete Selected Backup   [h/l, Tab] Switch Tabs"
         }
         _ => {
             " [h/l, Tab] Switch Tabs   [j/k] Navigate   [Space] Select   [Enter] Clean   [q/Esc] Quit"
@@ -752,4 +827,69 @@ fn format_target(name: &str, size: u64, selected: bool) -> String {
     let size_str = system::format_bytes(size);
     // basic padding
     format!(" {} {:<40} {} ", checkbox, name, size_str)
+}
+
+fn render_snapshots_tab(f: &mut Frame, app: &App, area: ratatui::layout::Rect) {
+    if !app.snapshots_available {
+        let p = Paragraph::new(
+            "\n\nSnapper/Btrfs is not detected on this system.\nNo backups to manage.",
+        )
+        .alignment(Alignment::Center)
+        .style(Style::default().fg(app.theme.foreground));
+        f.render_widget(p, area);
+        return;
+    }
+
+    if app.snapshots.is_empty() {
+        let p = Paragraph::new(
+            "\n\nNo snapshots found.\nPress 'c' to create a new backup snapshot.",
+        )
+        .alignment(Alignment::Center)
+        .style(Style::default().fg(app.theme.foreground));
+        f.render_widget(p, area);
+        return;
+    }
+
+    let mut items = vec![];
+
+    for snapshot in app.snapshots.iter() {
+        let size_str = if snapshot.used_space > 0 {
+            system::format_bytes(snapshot.used_space)
+        } else {
+            "".to_string() // usually 0 means it's exclusive space not calculated or very small
+        };
+        
+        let desc = if snapshot.description.is_empty() { "Manual Backup" } else { &snapshot.description };
+
+        let text = format!(
+            " [{}] {} - {} | {} {}",
+            snapshot.config.to_uppercase(),
+            snapshot.id,
+            snapshot.date,
+            desc,
+            size_str
+        );
+
+        items.push(ListItem::new(text).style(Style::default().fg(app.theme.foreground)));
+    }
+
+    let mut state = ratatui::widgets::ListState::default();
+    state.select(Some(app.snapshots_index));
+
+    let list = List::new(items)
+        .block(
+            Block::default()
+                .title(" Btrfs System Snapshots (Restorable via Limine/Omarchy) ")
+                .borders(Borders::BOTTOM)
+                .border_style(Style::default().fg(app.theme.color8)),
+        )
+        .highlight_style(
+            Style::default()
+                .fg(app.theme.background)
+                .bg(app.theme.accent)
+                .add_modifier(Modifier::BOLD),
+        )
+        .highlight_symbol(">> ");
+
+    f.render_stateful_widget(list, area, &mut state);
 }

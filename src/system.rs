@@ -10,6 +10,15 @@ pub struct DiskUsage {
     pub mount_point: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Snapshot {
+    pub config: String,
+    pub id: String,
+    pub date: String,
+    pub description: String,
+    pub used_space: u64,
+}
+
 #[derive(Clone, Debug)]
 pub struct TrashedItem {
     pub original_path: PathBuf,
@@ -328,6 +337,138 @@ pub fn get_flatpak_size() -> u64 {
     user_path.push("flatpak/app");
     total += get_dir_size_with_du(&user_path.to_string_lossy());
     total
+}
+
+pub fn check_snapper_available() -> bool {
+    Command::new("snapper")
+        .arg("--version")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
+pub fn get_snapper_configs() -> Vec<String> {
+    if !check_snapper_available() {
+        return vec![];
+    }
+
+    let output = Command::new("snapper")
+        .arg("--csvout")
+        .arg("list-configs")
+        .output();
+
+    if let Ok(out) = output
+        && out.status.success() {
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            let mut configs = Vec::new();
+            for line in stdout.lines().skip(1) { // Skip header
+                if let Some(config) = line.split(',').next()
+                    && !config.trim().is_empty() {
+                        configs.push(config.to_string());
+                    }
+            }
+            return configs;
+        }
+    vec![]
+}
+
+pub fn get_snapshots() -> Vec<Snapshot> {
+    let configs = get_snapper_configs();
+    let mut snapshots = Vec::new();
+
+    for config in configs {
+        let output = Command::new("pkexec")
+            .arg("snapper")
+            .arg("-c")
+            .arg(&config)
+            .arg("--csvout")
+            .arg("list")
+            .output();
+
+        if let Ok(out) = output
+            && out.status.success() {
+                let stdout = String::from_utf8_lossy(&out.stdout);
+                for line in stdout.lines().skip(1) { // Skip header
+                    let parts: Vec<&str> = line.split(',').collect();
+                    if parts.len() >= 12 {
+                        let id = parts[2].to_string();
+                        // Ignore snapshot 0 which is just the current system state, not a real backup
+                        if id == "0" {
+                            continue;
+                        }
+                        
+                        let date = parts[7].to_string();
+                        let used_space_str = parts[9];
+                        let description = parts[11].to_string();
+                        
+                        let used_space = used_space_str.parse::<u64>().unwrap_or(0);
+                        
+                        snapshots.push(Snapshot {
+                            config: config.clone(),
+                            id,
+                            date,
+                            description,
+                            used_space,
+                        });
+                    }
+                }
+            }
+    }
+    
+    // Sort by date descending (newest first)
+    snapshots.sort_by(|a, b| b.date.cmp(&a.date));
+    snapshots
+}
+
+pub fn delete_snapshot(config: &str, id: &str) -> bool {
+    let status = Command::new("pkexec")
+        .arg("snapper")
+        .arg("-c")
+        .arg(config)
+        .arg("delete")
+        .arg(id)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status();
+
+    status.map(|s| s.success()).unwrap_or(false)
+}
+
+pub fn create_snapshot() -> bool {
+    // We use the native omarchy-snapshot tool if available, otherwise fallback to plain snapper
+    if Path::new("/usr/bin/omarchy-snapshot").exists() {
+        let status = Command::new("pkexec")
+            .arg("omarchy-snapshot")
+            .arg("create")
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status();
+
+        return status.map(|s| s.success()).unwrap_or(false);
+    }
+    
+    // Fallback if not on Omarchy but still using Snapper
+    let configs = get_snapper_configs();
+    let mut success = false;
+    for config in configs {
+        let status = Command::new("pkexec")
+            .arg("snapper")
+            .arg("-c")
+            .arg(config)
+            .arg("create")
+            .arg("-c")
+            .arg("timeline")
+            .arg("-d")
+            .arg("Diskord Manual Backup")
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status();
+            
+        if status.map(|s| s.success()).unwrap_or(false) {
+            success = true;
+        }
+    }
+    success
 }
 
 pub fn clean_pacman_cache() -> bool {
