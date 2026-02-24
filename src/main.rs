@@ -75,6 +75,7 @@ struct App {
     snapshots: Vec<system::Snapshot>,
     snapshots_index: usize,
     snapshots_available: bool,
+    snapshots_loaded: bool,
 }
 
 impl App {
@@ -127,9 +128,10 @@ impl App {
             session_trash_index: 0,
             show_root_warning: false,
 
-            snapshots: system::get_snapshots(),
+            snapshots: Vec::new(),
             snapshots_index: 0,
             snapshots_available: system::check_snapper_available(),
+            snapshots_loaded: false,
         }
     }
 
@@ -417,6 +419,12 @@ impl App {
     }
 
     fn execute_snapshot_delete(&mut self) {
+        if !self.snapshots_loaded {
+            self.snapshots = system::get_snapshots();
+            self.snapshots_loaded = true;
+            return;
+        }
+
         if self.snapshots.is_empty() {
             return;
         }
@@ -431,7 +439,7 @@ impl App {
     }
 
     fn execute_snapshot_create(&mut self) {
-        if self.active_tab != ActiveTab::Snapshots {
+        if self.active_tab != ActiveTab::Snapshots || !self.snapshots_loaded {
             return;
         }
         if system::create_snapshot() {
@@ -604,7 +612,11 @@ fn ui(f: &mut Frame, app: &App) {
             " [u] Undo/Restore   [Enter] Permanently Delete Selected   [h/l, Tab] Switch Tabs   [Missing space? Check Snapshots tab]"
         }
         ActiveTab::Snapshots => {
-            " [c] Create New Backup   [Enter] Delete Selected Backup   [h/l, Tab] Switch Tabs"
+            if !app.snapshots_loaded {
+                " [Enter] Authenticate and Load System Backups   [h/l, Tab] Switch Tabs"
+            } else {
+                " [c] Create New Backup   [Enter] Delete Selected Backup   [h/l, Tab] Switch Tabs"
+            }
         }
         _ => {
             " [h/l, Tab] Switch Tabs   [j/k] Navigate   [Space] Select   [Enter] Clean   [q/Esc] Quit"
@@ -833,6 +845,16 @@ fn render_snapshots_tab(f: &mut Frame, app: &App, area: ratatui::layout::Rect) {
     if !app.snapshots_available {
         let p = Paragraph::new(
             "\n\nSnapper/Btrfs is not detected on this system.\nNo backups to manage.",
+        )
+        .alignment(Alignment::Center)
+        .style(Style::default().fg(app.theme.foreground));
+        f.render_widget(p, area);
+        return;
+    }
+
+    if !app.snapshots_loaded {
+        let p = Paragraph::new(
+            "\n\nSystem Backups are locked.\nPress [Enter] to authenticate and load them.",
         )
         .alignment(Alignment::Center)
         .style(Style::default().fg(app.theme.foreground));

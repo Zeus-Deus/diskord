@@ -374,46 +374,67 @@ pub fn get_snapper_configs() -> Vec<String> {
 
 pub fn get_snapshots() -> Vec<Snapshot> {
     let configs = get_snapper_configs();
+    if configs.is_empty() {
+        return vec![];
+    }
+
     let mut snapshots = Vec::new();
+    let mut bash_cmd = String::new();
+    
+    // Build a single bash command to get all snapshots with one pkexec prompt
+    for (i, config) in configs.iter().enumerate() {
+        if i > 0 {
+            bash_cmd.push_str(" && ");
+        }
+        bash_cmd.push_str(&format!("echo 'CONFIG_START:{}' && snapper -c {} --csvout list", config, config));
+    }
 
-    for config in configs {
-        let output = Command::new("pkexec")
-            .arg("snapper")
-            .arg("-c")
-            .arg(&config)
-            .arg("--csvout")
-            .arg("list")
-            .output();
+    let output = Command::new("pkexec")
+        .arg("bash")
+        .arg("-c")
+        .arg(&bash_cmd)
+        .output();
 
-        if let Ok(out) = output
-            && out.status.success() {
-                let stdout = String::from_utf8_lossy(&out.stdout);
-                for line in stdout.lines().skip(1) { // Skip header
-                    let parts: Vec<&str> = line.split(',').collect();
-                    if parts.len() >= 12 {
-                        let id = parts[2].to_string();
-                        // Ignore snapshot 0 which is just the current system state, not a real backup
-                        if id == "0" {
-                            continue;
-                        }
-                        
-                        let date = parts[7].to_string();
-                        let used_space_str = parts[9];
-                        let description = parts[11].to_string();
-                        
-                        let used_space = used_space_str.parse::<u64>().unwrap_or(0);
-                        
-                        snapshots.push(Snapshot {
-                            config: config.clone(),
-                            id,
-                            date,
-                            description,
-                            used_space,
-                        });
+    if let Ok(out) = output
+        && out.status.success() {
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            let mut current_config = String::new();
+            
+            for line in stdout.lines() {
+                if line.starts_with("CONFIG_START:") {
+                    current_config = line.replace("CONFIG_START:", "").trim().to_string();
+                    continue;
+                }
+                
+                // Skip the csv header row
+                if line.starts_with("config,subvolume") {
+                    continue;
+                }
+
+                let parts: Vec<&str> = line.split(',').collect();
+                if parts.len() >= 12 {
+                    let id = parts[2].to_string();
+                    // Ignore snapshot 0 which is just the current system state, not a real backup
+                    if id == "0" {
+                        continue;
                     }
+                    
+                    let date = parts[7].to_string();
+                    let used_space_str = parts[9];
+                    let description = parts[11].to_string();
+                    
+                    let used_space = used_space_str.parse::<u64>().unwrap_or(0);
+                    
+                    snapshots.push(Snapshot {
+                        config: current_config.clone(),
+                        id,
+                        date,
+                        description,
+                        used_space,
+                    });
                 }
             }
-    }
+        }
     
     // Sort by date descending (newest first)
     snapshots.sort_by(|a, b| b.date.cmp(&a.date));
