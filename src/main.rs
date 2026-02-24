@@ -76,6 +76,8 @@ struct App {
     snapshots_index: usize,
     snapshots_available: bool,
     snapshots_loaded: bool,
+    snapshots_loading: bool,
+    snapshot_rx: Option<std::sync::mpsc::Receiver<Vec<system::Snapshot>>>,
 }
 
 impl App {
@@ -132,6 +134,8 @@ impl App {
             snapshots_index: 0,
             snapshots_available: system::check_snapper_available(),
             snapshots_loaded: false,
+            snapshots_loading: false,
+            snapshot_rx: None,
         }
     }
 
@@ -420,8 +424,19 @@ impl App {
 
     fn execute_snapshot_delete(&mut self) {
         if !self.snapshots_loaded {
-            self.snapshots = system::get_snapshots();
-            self.snapshots_loaded = true;
+            // If already loading, drop this keypress — prevents queued Enter presses
+            // from triggering deletes the moment loading completes.
+            if self.snapshots_loading {
+                return;
+            }
+            // Kick off background load
+            self.snapshots_loading = true;
+            let (tx, rx) = std::sync::mpsc::channel();
+            self.snapshot_rx = Some(rx);
+            std::thread::spawn(move || {
+                let result = system::get_snapshots();
+                let _ = tx.send(result);
+            });
             return;
         }
 
@@ -458,6 +473,16 @@ fn main() -> Result<()> {
     let mut app = App::new();
 
     while !app.should_quit {
+        // Poll background snapshot loader each frame
+        if let Some(rx) = &app.snapshot_rx
+            && let Ok(snapshots) = rx.try_recv() {
+                app.snapshots = snapshots;
+                app.snapshots_loaded = true;
+                app.snapshots_loading = false;
+                app.snapshot_rx = None;
+                app.disks = system::get_disks();
+            }
+
         terminal.draw(|f| ui(f, &app))?;
 
         if event::poll(Duration::from_millis(50))?
@@ -612,7 +637,9 @@ fn ui(f: &mut Frame, app: &App) {
             " [u] Undo/Restore   [Enter] Permanently Delete Selected   [h/l, Tab] Switch Tabs   [Missing space? Check Snapshots tab]"
         }
         ActiveTab::Snapshots => {
-            if !app.snapshots_loaded {
+            if app.snapshots_loading {
+                " Loading system backups...   [h/l, Tab] Switch Tabs"
+            } else if !app.snapshots_loaded {
                 " [Enter] Authenticate and Load System Backups   [h/l, Tab] Switch Tabs"
             } else {
                 " [c] Create New Backup   [Enter] Delete Selected Backup   [h/l, Tab] Switch Tabs"
@@ -853,11 +880,14 @@ fn render_snapshots_tab(f: &mut Frame, app: &App, area: ratatui::layout::Rect) {
     }
 
     if !app.snapshots_loaded {
-        let p = Paragraph::new(
-            "\n\nSystem Backups are locked.\nPress [Enter] to authenticate and load them.",
-        )
-        .alignment(Alignment::Center)
-        .style(Style::default().fg(app.theme.foreground));
+        let msg = if app.snapshots_loading {
+            "\n\nAuthenticating and loading system backups...\nPlease complete the password prompt."
+        } else {
+            "\n\nSystem Backups are locked.\nPress [Enter] to authenticate and load them."
+        };
+        let p = Paragraph::new(msg)
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(app.theme.foreground));
         f.render_widget(p, area);
         return;
     }
